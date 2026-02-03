@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo Pong - Cyberpunk Table Tennis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+            50% { transform: translate(-50%, -50%) translateY(-10px); }
+        }
+
+        @keyframes scaleIn {
+            from { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.8); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1); 
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        @keyframes neonPulse {
+            0%, 100% { 
+                text-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff, 0 0 30px #00f2ff;
+            }
+            50% { 
+                text-shadow: 0 0 20px #00f2ff, 0 0 40px #00f2ff, 0 0 60px #00f2ff;
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-2px, 2px); }
+            20%, 40%, 60%, 80% { transform: translate(2px, -2px); }
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 242, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 234, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.3), 0 0 60px rgba(255, 0, 234, 0.2);
+            display: none;
+            max-width: 100%;
+            height: auto;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        canvas.shake {
+            animation: shake 0.3s;
+        }
+
+        /* Glassmorphism Menu Styling */
+        article {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            z-index: 5;
+            animation: scaleIn 0.3s ease-out;
+            min-width: 320px;
+        }
+
+        article#btns {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        article h2 {
+            color: white;
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00f2ff, #ff00ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: neonPulse 2s ease-in-out infinite;
+        }
+
+        article p {
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        #infoShopMenu {
+            max-height: 80vh;
+            width: 90vw;
+            max-width: 600px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        #infoShopMenu::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #infoShopMenu::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        #infoShopMenu::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00f2ff, #ff00ea);
+            border-radius: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            color: white;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00f2ff;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        button#onePlayerBtn, button#startTournament4Btn, button#startTournament8Btn {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(255, 0, 234, 0.2));
+            border-color: #00f2ff;
+        }
+
+        button#twoPlayerBtn {
+            background: linear-gradient(135deg, rgba(255, 0, 234, 0.2), rgba(0, 242, 255, 0.2));
+            border-color: #ff00ea;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 30px 60px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(12px);
+            color: #00f2ff;
+            font-size: 36px;
+            border: 2px solid #00f2ff;
+            border-radius: 15px;
+            display: none;
+            z-index: 10;
+            white-space: nowrap;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.6);
+            animation: scaleIn 0.3s ease-out;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            color: white;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        input[type="text"], input[type="color"] {
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            color: white;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus, input[type="color"]:focus {
+            outline: none;
+            border-color: #00f2ff;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        #infoShopMenu h3 {
+            color: #00f2ff;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.3);
+            padding-bottom: 8px;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .tournament-list {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tournament-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .tournament-list li:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 242, 255, 0.5);
+        }
+
+        .tournament-list li button {
+            padding: 6px 12px;
+            font-size: 13px;
+            width: 80px;
+        }
+
+        .game-control-btn {
+            position: absolute;
+            width: 100px;
+            height: 40px;
+            font-size: 14px;
+            display: none;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+
+        #backBtn {
+            top: 10px;
+            left: 10px;
+        }
+
+        #pauseBtn {
+            top: 10px;
+            right: 10px;
+        }
+
+        /* Notification Center */
+        #notificationContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+
+        .notification {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 242, 255, 0.5);
+            border-radius: 12px;
+            color: white;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+            animation: slideInRight 0.5s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification.fadeout {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        .notification-icon {
+            font-size: 24px;
+        }
+
+        .notification-text {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        /* Touch Control Zones */
+        .touch-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 50;
+            display: none;
+            touch-action: none;
+        }
+
+        .touch-zone.left {
+            left: 0;
+        }
+
+        .touch-zone.right {
+            right: 0;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            article {
+                padding: 25px;
+                gap: 12px;
+                min-width: 280px;
+                max-width: 90vw;
+            }
+
+            article h2 {
+                font-size: 22px;
+            }
+
+            button {
+                padding: 10px 18px;
+                font-size: 14px;
+            }
+
+            #message {
+                font-size: 24px;
+                padding: 20px 40px;
+            }
+
+            #infoShopMenu {
+                padding: 20px;
+            }
+
+            #notificationContainer {
+                max-width: calc(100vw - 40px);
+                right: 10px;
+                top: 10px;
+            }
+
+            .game-control-btn {
+                width: 70px;
+                height: 35px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            article {
+                padding: 20px;
+            }
+
+            button {
+                font-size: 13px;
+                padding: 8px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <article id="btns">
+            <h2>NEO PONG</h2>
+            <p style="font-size: 12px; margin-bottom: 10px;">CYBERPUNK TABLE TENNIS</p>
+            <button id="onePlayerBtn">▶ SINGLE PLAYER</button>
+            <button id="twoPlayerBtn">🎮 2 PLAYER</button>
+            <button id="tournamentBtn">🏆 TOURNAMENT</button>
+            <button id="customiseBtn">⚙️ CUSTOMIZE</button>
+            <button id="tutorialBtn">🛒 SHOP</button>
+        </article>
+
+        <article id="difficultyBtns" style="display:none;">
+            <h2>SELECT DIFFICULTY</h2>
+            <button id="easyBtn">Easy</button>
+            <button id="mediumBtn">Medium</button>
+            <button id="hardBtn">Hard</button>
+            <button id="backFromDifficultyBtn">Back</button>
+        </article>
+
+        <article id="customiseMenu" style="display:none;">
+            <h2>CUSTOMIZATION</h2>
+            <div class="form-group">
+                <label for="usernameInput">Username:</label>
+                <input type="text" id="usernameInput" maxlength="15" value="Player 1">
+            </div>
+            <div class="form-group">
+                <label for="paddleColorInput">Paddle Color:</label>
+                <input type="color" id="paddleColorInput" value="#FF00EA">
+            </div>
+            <div class="form-group">
+                <label for="paddleTColorInput">Paddle Trail Color (Wavy Only):</label>
+                <input type="color" id="paddleTColorInput" value="#00F2FF">
+            </div>
+            <button id="saveCustomisationBtn">Save Changes</button>
+            <button id="backFromCustomiseBtn">Back</button>
+        </article>
+
+        <article id="tournamentMenu" style="display:none;">
+            <h2>TOURNAMENT SETUP</h2>
+            <p>Win matches to earn coins!</p>
+            <button id="startTournament4Btn">Start 4-Player Tournament</button>
+            <button id="startTournament8Btn">Start 8-Player Tournament</button>
+            <button id="backFromTournamentBtn">Back</button>
+        </article>
+        
+        <article id="infoShopMenu" style="display:none;">
+            <h2>CYBER SHOP</h2>
+            
+            <div style="color:white; display: flex; justify-content: space-between; font-size: 16px; padding: 10px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.2); margin-bottom: 10px;">
+                <span>User: <strong id="infoUsername">Player 1</strong></span>
+                <span>Coins: <strong id="infoCoins">0</strong> 💰</span>
+            </div>
+
+            <div style="color:white;">
+                <h3>Paddle Patterns</h3>
+                <ul id="infoPaddlePatternsList" class="tournament-list"></ul>
+            </div>
+
+            <div style="color:white;">
+                <h3>Ball Patterns</h3>
+                <ul id="infoBallPatternsList" class="tournament-list"></ul>
+            </div>
+            
+            <div style="color:white;">
+                <h3>Paddle Trails (Path Effect)</h3>
+                <ul id="infoPaddleTrailsList" class="tournament-list"></ul>
+            </div>
+
+            <button id="infoBackBtn" style="width: 100%; height: 45px; margin-top: 10px;">Back to Menu</button>
+        </article>
+
+        <div id="message"></div>
+        
+        <button id="backBtn" class="game-control-btn">↩️ ESC</button>
+        <button id="pauseBtn" class="game-control-btn">⏸️ P</button>
+
+        <canvas id="pingpongCanvas"></canvas>
+
+        <!-- Touch Control Zones -->
+        <div class="touch-zone left" id="touchLeft"></div>
+        <div class="touch-zone right" id="touchRight"></div>
+        
+        <audio id="gameMusic" autoplay controls style="display:none;"></audio>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+    
+    <script src="ping.js"></script>
+    <script>
+        // ===== NOTIFICATION SYSTEM =====
+        function showNotification(message, icon = '🎉') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <span class="notification-icon">${icon}</span>
+                <span class="notification-text">${message}</span>
+            `;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('fadeout');
+                setTimeout(() => {
+                    container.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+
+        // ===== MOBILE TOUCH CONTROLS =====
+        const touchLeft = document.getElementById('touchLeft');
+        const touchRight = document.getElementById('touchRight');
+        const canvas = document.getElementById('pingpongCanvas');
+
+        let leftTouching = false;
+        let rightTouching = false;
+
+        function setupTouchControls() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                touchLeft.style.display = 'block';
+                touchRight.style.display = 'block';
+            }
+
+            // Left paddle control
+            touchLeft.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                leftTouching = true;
+                if (window.keys) window.keys['w'] = true;
+            });
+
+            touchLeft.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            });
+
+            touchLeft.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                leftTouching = false;
+                if (window.keys) window.keys['w'] = false;
+            });
+
+            // Right paddle control
+            touchRight.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                rightTouching = true;
+                if (window.keys) window.keys['ArrowUp'] = true;
+            });
+
+            touchRight.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            });
+
+            touchRight.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                rightTouching = false;
+                if (window.keys) window.keys['ArrowUp'] = false;
+            });
+
+            // Prevent default touch behavior on canvas
+            canvas.addEventListener('touchstart', (e) => e.preventDefault());
+            canvas.addEventListener('touchmove', (e) => e.preventDefault());
+            canvas.addEventListener('touchend', (e) => e.preventDefault());
+        }
+
+        setupTouchControls();
+
+        // ===== CANVAS SHAKE EFFECT =====
+        function shakeCanvas() {
+            canvas.classList.add('shake');
+            setTimeout(() => {
+                canvas.classList.remove('shake');
+            }, 300);
+        }
+
+        // Make shake function globally accessible
+        window.shakeCanvas = shakeCanvas;
+
+        // ===== BALL TRAIL EFFECT =====
+        let ballTrail = [];
+        const maxTrailLength = 15;
+
+        function updateBallTrail(x, y, speed) {
+            ballTrail.push({ x, y, alpha: 1, speed });
+            if (ballTrail.length > maxTrailLength) {
+                ballTrail.shift();
+            }
+        }
+
+        function drawBallTrail(ctx) {
+            ballTrail.forEach((point, index) => {
+                const alpha = (index / ballTrail.length) * point.alpha;
+                const size = 5 + (point.speed / 10);
+                
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.6;
+                
+                const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, size);
+                gradient.addColorStop(0, '#00f2ff');
+                gradient.addColorStop(1, 'rgba(0, 242, 255, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        // Make trail functions globally accessible
+        window.updateBallTrail = updateBallTrail;
+        window.drawBallTrail = drawBallTrail;
+        window.showNotification = showNotification;
+
+        // ===== INTEGRATE WITH EXISTING GAME LOGIC =====
+        // Hook into shop purchases
+        document.addEventListener('DOMContentLoaded', () => {
+            const originalClick = HTMLElement.prototype.click;
+            
+            // Monitor shop item purchases
+            const shopObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList' && mutation.target.id === 'infoPaddlePatternsList') {
+                        // Check if any items were purchased
+                        const buttons = mutation.target.querySelectorAll('button');
+                        buttons.forEach(btn => {
+                            if (!btn.dataset.listenerAdded) {
+                                btn.dataset.listenerAdded = 'true';
+                                const originalOnClick = btn.onclick;
+                                btn.onclick = function(e) {
+                                    const itemName = this.parentElement.querySelector('span').textContent;
+                                    if (originalOnClick) originalOnClick.call(this, e);
+                                    // Show notification after purchase attempt
+                                    setTimeout(() => {
+                                        if (this.disabled) {
+                                            showNotification(`Unlocked: ${itemName}!`, '🎨');
+                                        }
+                                    }, 100);
+                                };
+                            }
+                        });
+                    }
+                });
+            });
+
+            const shopMenu = document.getElementById('infoShopMenu');
+            if (shopMenu) {
+                shopObserver.observe(shopMenu, { childList: true, subtree: true });
+            }
+        });
+
+        // Show welcome notification
+        setTimeout(() => {
+            showNotification('Welcome to Neo Pong!', '🎮');
+        }, 500);
+    </script>
+</body>
+</html>
